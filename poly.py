@@ -1,5 +1,6 @@
 import params
-import sha3 #need to implement
+import sha3 # need to implement
+import rand # need to implement
 
 def uniform(a, seed):
     pos = 0
@@ -20,4 +21,17 @@ def uniform(a, seed):
             nblocks = 1
             buf = sha3.squeezeblocks(nblocks, state)
             pos = 0
+    return coeffs
+
+def get_noise():
+    buf = rand.n(params.N * 4)
+    for i in range(0,params.N):
+        t = buf[i]
+        d = 0
+        for j in range(0,8):
+            # j is a signed integer???
+            d += (t >> j) & 0x01010101
+        a = ((d >> 8) & 0xff) + (d & 0xff)
+        b = (d >> 24) + ((d >> 16) & 0xff)
+        coeffs[i] = a + params.Q - b
     return coeffs
