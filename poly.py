@@ -1,6 +1,10 @@
 import params
+import precomp
 import sha3 # need to implement
 import rand # need to implement
+
+QINV = 12287 # -inverse_mod(p,2^18)
+RLOG = 18
 
 def uniform(a, seed):
     pos = 0
@@ -35,3 +39,18 @@ def get_noise():
         b = (d >> 24) + ((d >> 16) & 0xff)
         coeffs[i] = a + params.Q - b
     return coeffs
+
+def poly_ntt(coefficients):
+    coefficients = mul_coefficients(coefficients, precomp.psis_bitrev_montgomery)
+
+def mul_coefficients(coefficients, factors):
+    for i in range(0,params.N):
+        coefficients[i] = montgomery_reduce(coefficients[i] * factors[i])
+    return coefficients
+
+def montgomery_reduce(a):
+    u = a * QINV
+    u &= (1 << RLOG) - 1
+    u *= params.Q
+    a += u
+    return a >> 18
