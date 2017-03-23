@@ -1,7 +1,7 @@
 import params
 import precomp
 import sha3 # need to implement
-import rand # need to implement
+import os
 
 QINV = 12287 # -inverse_mod(p,2^18)
 RLOG = 18
@@ -28,7 +28,9 @@ def uniform(a, seed):
     return coeffs
 
 def get_noise():
-    buf = rand.n(params.N * 4)
+    buf = []
+    for i in range(0,params.N * 4):
+        buf.append(os.urandom(1))
     for i in range(0,params.N):
         t = buf[i]
         d = 0

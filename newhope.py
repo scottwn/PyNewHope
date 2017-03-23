@@ -1,6 +1,6 @@
 import poly
 import params
-import rand
+import os
 
 def encode_a(coefficients, seed):
     send = poly.to_bytes(coefficients)
@@ -8,8 +8,10 @@ def encode_a(coefficients, seed):
         send.append(seed[i])
     return send
 
-def keygen(sk, rand):
-    seed = rand.n(params.NEWHOPE_SEEDBYES) # function returns n random 8-bit unsigned integers
+def keygen(sk):
+    seed = []
+    for i in range(0,params.NEWHOPE_SEEDBYTES):
+        seed.append(os.urandom(1))
     a.coeffs = poly.uniform(seed)
     sk.coeffs = poly.get_noise()
     sk.coeffs = poly.poly_ntt(sk.coeffs)
