@@ -22,11 +22,14 @@ def keygen(sk):
             coefficient = int.from_bytes(
                 shake_output[j * 2:j * 2 + 2], byteorder = 'little')
             j++
+            if j * 2 >= len(shake_output):
+                print('Error: Not enough data from SHAKE-128')
+                exit(1)
         a_coeffs.append(coefficient)
-    sk_coeffs = poly.get_noise()
-    sk_coeffs = poly.poly_ntt(sk.coeffs)
+    s_coeffs = poly.get_noise()
+    s_coeffs = poly.poly_ntt(s_coeffs)
     e_coeffs = poly.get_noise()
     e_coeffs = poly.poly_ntt(e.coeffs)
-    r_coeffs = poly.pointwise(sk.coeffs, a.coeffs)
-    pk_coeffs = poly.add(e.coeffs, r.coeffs)
-    return encode_a(pk.coeffs, seed)
+    r_coeffs = poly.pointwise(s_coeffs, a_coeffs)
+    p_coeffs = poly.add(e_coeffs, r_coeffs)
+    return encode_a(p_coeffs, seed)
