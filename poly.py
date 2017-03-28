@@ -59,29 +59,6 @@ def add(a, b): # a and b are the coefficients of these polys as lists
         coefficients.append(barrett_reduce(a[i] + b[i]))
     return coefficients
 
-def to_bytes(coefficients):
-    output = []
-    for i in range(0,params.N / 4):
-        t = []
-        for j in range(0,4):
-            t.append(barrett_reduce(coefficients[4 * i + j]))
-        for j in range(0,4):
-            t[j] = check_coeff(t[j])
-        output.append(t[0] & 0xff)
-        output.append((t[0] >> 8) | (t[1] << 6))
-        output.append(t[1] >> 2)
-        output.append((t[1] >> 10) | (t[2] << 4))
-        output.append(t[2] >> 4)
-        output.append((t[2] >> 12) | (t[3] << 2))
-        output.append(t[3] >> 6)
-    return output
-
-def check_coeff(t):
-    m = t - params.Q #uint16_t
-    c = m #int16_t
-    c >>= 15
-    return m ^ ((t ^ m) & c)
-
 def mul_coefficients(coefficients, factors):
     for i in range(0,params.N):
         coefficients[i] = montgomery_reduce(coefficients[i] * factors[i])

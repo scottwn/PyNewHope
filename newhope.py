@@ -3,16 +3,13 @@ import params
 import os
 import hashlib
 
-def encode_a(coefficients, seed):
-    send = poly.to_bytes(coefficients)
-    for i in range(0,params.NEWHOPE_SEEDBYTES):
-        send.append(seed[i])
-    return send
-
-def keygen(sk):
+def keygen():
+    seed = os.urandom(params.NEWHOPE_SEEDBYTES)
+    hashing_algorithm = hashlib.shake_128()
+    hashing_algorithm.update(seed)
     # 2200 bytes from SHAKE-128 function is enough data to get 1024 coefficients
     # smaller than 5q, from Alkim, Ducas, Pöppelmann, Schwabe section 7:
-    shake_output = hashlib.shake_128().digest(2200)
+    shake_output = hashing_algorithm.digest(2200)
     a_coeffs = []
     for i in range(0,params.N):
         j = 0
@@ -32,4 +29,4 @@ def keygen(sk):
     e_coeffs = poly.poly_ntt(e.coeffs)
     r_coeffs = poly.pointwise(s_coeffs, a_coeffs)
     p_coeffs = poly.add(e_coeffs, r_coeffs)
-    return encode_a(p_coeffs, seed)
+    return bytes(p_coeffs) + seed
