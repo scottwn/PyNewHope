@@ -1,6 +1,5 @@
 import params
 import precomp
-import sha3 # need to implement
 import os
 
 QINV = 12287 # -inverse_mod(p,2^18)
@@ -9,6 +8,8 @@ RLOG = 18
 def to_bytes(coefficients):
     output = []
     for i in range(0,params.N // 4): # Floor division returns int in python3.6.
+        # Compress 4 coefficients so they are less than parameter Q and get them
+        # back as a list: 
         t = reducer(coefficients, i)
         output.append(t[0] & 0xff)
         output.append((t[0] >> 8 | t[1] << 6) & 0xff)
@@ -34,6 +35,7 @@ def less_than_q(value):
     else:
         return m
 
+# Get a random sampling of integers from a normal distribution around parameter Q:
 def get_noise():
     coeffs = []
     for i in range(0,params.N):
