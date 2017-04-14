@@ -20,6 +20,21 @@ def to_bytes(coefficients):
         output.append(t[3] >> 6 & 0xff)
     return output
 
+def from_bytes(received):
+    output = []
+    for i in range(0,params.N // 4):
+        output.append(received[7 * i + 0] | (received[7 * i + 1] & 0x3f) << 8)
+        output.append(
+            received[7 * i + 1] >> 6 
+            | received[7 * i + 2] << 2 
+            | (received[7 * i + 3] & 0x0f) << 10)
+        output.append(
+            received[7 * i + 3] >> 4
+            | received[7 * i + 4] << 4
+            | (received[7 * i + 5] & 0x03) << 12)
+        output.append(received[7 * i + 5] >> 2 | received[7 * i + 6] << 6)
+    return output
+
 def reducer(coefficients, i):
     output = []
     for j in range(0,4):

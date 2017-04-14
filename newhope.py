@@ -3,6 +3,9 @@ import params
 import os
 import hashlib
 
+def decode_a(received):
+
+
 def keygen(verbose = False):
     seed = os.urandom(params.NEWHOPE_SEEDBYTES)
     hashing_algorithm = hashlib.shake_128()
