@@ -9,7 +9,7 @@ def to_bytes(coefficients):
     output = []
     for i in range(0,params.N // 4): # Floor division returns int in python3.6.
         # Compress 4 coefficients so they are less than parameter Q and get them
-        # back as a list: 
+        # back as a list.
         t = reducer(coefficients, i)
         output.append(t[0] & 0xff)
         output.append((t[0] >> 8 | t[1] << 6) & 0xff)
@@ -23,6 +23,7 @@ def to_bytes(coefficients):
 def from_bytes(received):
     output = []
     for i in range(0,params.N // 4):
+        # TODO: Use bit manipulation to fake uints.
         output.append(received[7 * i + 0] | (received[7 * i + 1] & 0x3f) << 8)
         output.append(
             received[7 * i + 1] >> 6 
@@ -50,7 +51,8 @@ def less_than_q(value):
     else:
         return m
 
-# Get a random sampling of integers from a normal distribution around parameter Q:
+# Get a random sampling of integers from a normal distribution around parameter
+# Q.
 def get_noise():
     coeffs = []
     for i in range(0,params.N):
@@ -88,14 +90,16 @@ def poly_ntt(coefficients):
     coefficients = ntt(coefficients, precomp.omegas_montgomery)
     return coefficients
 
-def pointwise(a, b): # a and b are the coefficients of these polys as lists
+# a and b are the coefficients of these polys as lists.
+def pointwise(a, b):
     coefficients = []
     for i in range(0,params.N):
         t = montgomery_reduce(3186 * b[i])
         coefficients.append(montgomery_reduce(a[i] * t))
     return coefficients
 
-def add(a, b): # a and b are the coefficients of these polys as lists
+# a and b are the coefficients of these polys as lists.
+def add(a, b):
     coefficients = []
     for i in range(0,params.N):
         coefficients.append(barrett_reduce(a[i] + b[i]))
