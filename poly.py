@@ -5,6 +5,21 @@ import os
 QINV = 12287 # -inverse_mod(p,2^18)
 RLOG = 18
 
+def bitrev_vector(coefficients):
+    for i in range(0,params.N):
+        r = bitrev_table[i]
+        if i < r:
+            tmp = coefficients[i]
+            coefficients[i] = coefficients[r]
+            coefficients[r] = tmp
+    return coefficients
+
+def invntt(coefficients):
+    coefficients = bitrev_vector(coefficients)
+    coefficients = ntt(coefficients, precomp.omegas_inv_montgomery)
+    coefficients = mul_coefficients(coefficients,psis_inv_montgomery)
+    return coefficients
+
 def to_bytes(coefficients):
     output = []
     for i in range(0,params.N // 4): # Floor division returns int in python3.6.
