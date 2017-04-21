@@ -5,8 +5,57 @@ import os
 QINV = 12287 # -inverse_mod(p,2^18)
 RLOG = 18
 
+def nh_abs(x):
+    mask = x >> 31
+    return (x ^ mask) - mask
+
+def f(x):
+    b = x * 2730
+    t = b >> 25
+    b = x - t * 12289
+    b = 12288 - b
+    b >>= 31
+    t -= b
+    r = t & 1
+    xit = t >> 1
+    v0 = xit + r
+    t -= 1
+    r = t & 1
+    v1 = (t >> 1) + r
+    return (v0, v1, nh_abs(x - v0 * 2 * params.Q))
+
+def helprec(coefficients):
+    rand = []
+    output = []
+    for i in range(0, 1024):
+        output.append(0)
+    v0 = [0, 0, 0, 0]
+    v1 = [0, 0, 0, 0]
+    v_tmp = [0, 0, 0, 0]
+    for i in range(0, 32):
+        rand.append(int.from_bytes(os.urandom(4), byteorder='little'))
+    for i in range(0, 256):
+        rbit = rand[i >> 3] >> (i & 7) & 1
+        (v0[0], v1[0], k) = f(8 * coefficients[0 + i] + 4 * rbit)
+        (v0[1], v1[1], x) = f(8 * coefficients[256 + i] + 4 * rbit)
+        k += x
+        (v0[2], v1[2], x) = f(8 * coefficients[512 + i] + 4 * rbit)
+        k += x
+        (v0[3], v1[3], x) = f(8 * coefficients[768 + i] + 4 * rbit)
+        k += x
+        k = 2 * params.Q - 1 - k >> 31
+	v_tmp[0] = ((~k) & v0[0]) ^ (k & v1[0])
+	v_tmp[1] = ((~k) & v0[1]) ^ (k & v1[1])
+	v_tmp[2] = ((~k) & v0[2]) ^ (k & v1[2])
+	v_tmp[3] = ((~k) & v0[3]) ^ (k & v1[3])
+	output[0 + i] = (v_tmp[0] - v_tmp[3]) & 3
+	output[256 + i] = (v_tmp[1] - v_tmp[3]) & 3
+	output[512 + i] = (v_tmp[2] - v_tmp[3]) & 3
+	output[768 + i] = (-k + 2 * v_tmp[3]) & 3
+    return output
+
 def bitrev_vector(coefficients):
-    for i in range(0,params.N):
+    for i in range(0, params.N):
         r = bitrev_table[i]
         if i < r:
             tmp = coefficients[i]
@@ -17,12 +66,12 @@ def bitrev_vector(coefficients):
 def invntt(coefficients):
     coefficients = bitrev_vector(coefficients)
     coefficients = ntt(coefficients, precomp.omegas_inv_montgomery)
-    coefficients = mul_coefficients(coefficients,psis_inv_montgomery)
+    coefficients = mul_coefficients(coefficients, psis_inv_montgomery)
     return coefficients
 
 def to_bytes(coefficients):
     output = []
-    for i in range(0,params.N // 4): # Floor division returns int in python3.6.
+    for i in range(0, params.N // 4): # Floor division returns int in python3.6.
         # Compress 4 coefficients so they are less than parameter Q and get them
         # back as a list.
         t = reducer(coefficients, i)
@@ -37,7 +86,7 @@ def to_bytes(coefficients):
 
 def from_bytes(received):
     output = []
-    for i in range(0,params.N // 4):
+    for i in range(0, params.N // 4):
         output.append(received[7 * i + 0] | (received[7 * i + 1] & 0x3f) << 8)
         output.append(
             received[7 * i + 1] >> 6 
@@ -54,9 +103,9 @@ def from_bytes(received):
 
 def reducer(coefficients, i):
     output = []
-    for j in range(0,4):
+    for j in range(0, 4):
         output.append(barrett_reduce(coefficients[4 * i + j]))
-    for j in range(0,4):
+    for j in range(0, 4):
         output[j] = less_than_q(output[j])
     return output
 
@@ -71,10 +120,10 @@ def less_than_q(value):
 # Q.
 def get_noise():
     coeffs = []
-    for i in range(0,params.N):
+    for i in range(0, params.N):
         t = int.from_bytes(os.urandom(4), byteorder='little')
         d = 0
-        for j in range(0,8):
+        for j in range(0, 8):
             d += (t >> j) & 0x01010101
         a = ((d >> 8) & 0xff) + (d & 0xff)
         b = (d >> 24) + ((d >> 16) & 0xff)
@@ -82,7 +131,7 @@ def get_noise():
     return coeffs
 
 def ntt(coefficients, omega):
-    for i in range(0,10,2):
+    for i in range(0, 10, 2):
         distance = 1 << i
         coefficients = ntt_helper(distance, coefficients, omega)
         distance <<= 1
@@ -90,9 +139,9 @@ def ntt(coefficients, omega):
     return coefficients
 
 def ntt_helper(distance, coefficients, omega):
-    for start in range(0,distance):
+    for start in range(0, distance):
         jTwiddle = 0
-        for j in range(start,params.N - 1,2 * distance):
+        for j in range(start, params.N - 1, 2 * distance):
             W = omega[jTwiddle]
             jTwiddle += 1
             temp = coefficients[j]
@@ -109,7 +158,7 @@ def poly_ntt(coefficients):
 # a and b are the coefficients of these polys as lists.
 def pointwise(a, b):
     coefficients = []
-    for i in range(0,params.N):
+    for i in range(0, params.N):
         t = montgomery_reduce(3186 * b[i])
         coefficients.append(montgomery_reduce(a[i] * t))
     return coefficients
@@ -117,12 +166,12 @@ def pointwise(a, b):
 # a and b are the coefficients of these polys as lists.
 def add(a, b):
     coefficients = []
-    for i in range(0,params.N):
+    for i in range(0, params.N):
         coefficients.append(barrett_reduce(a[i] + b[i]))
     return coefficients
 
 def mul_coefficients(coefficients, factors):
-    for i in range(0,params.N):
+    for i in range(0, params.N):
         coefficients[i] = montgomery_reduce(coefficients[i] * factors[i])
     return coefficients
 
