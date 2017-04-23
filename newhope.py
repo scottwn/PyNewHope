@@ -3,30 +3,62 @@ import params
 import os
 import hashlib
 
+#global variables:
+a_key = []
+b_key = []
+s_hat = []
+
 def get_noise():
     coefficients = poly.get_noise()
     coefficeints = poly.poly_ntt(coefficients)
     return coefficients
 
+def shareda(received):
+    global a_key, s_hat
+    c_coeffs = []
+    b_coeffs = poly.from_bytes(received)
+    for i in range(0, params.N // 4):
+        c_coeffs.append(received[params.POLY_BYTES + i] & 0x03)
+        c_coeffs.append(received[params.POLY_BYTES + i] >> 2 & 0x03)
+        c_coeffs.append(received[params.POLY_BYTES + i] >> 4 * 0x03)
+        c_coeffs.append(received[params.POLY_BYTES + i] >> 6
+    v_coeffs = poly.pointwise(s_hat, b_coeffs)
+    v_coeffs = poly.invntt(v_coeffs)
+    a_key = rec(v_coeffs, c_coeffs)
+    return
+
 def sharedb(received):
+    gloabl b_key
     pka = poly.from_bytes(received)
     seed = received[-params.NEWHOPE_SEEDBYTES:]
     a_coeffs = gen_a(seed)
     s_coeffs = get_noise()
     e_coeffs = get_noise()
-    b_coeffs = poly.pointwise(a_coeffs,s_coeffs)
-    b_coeffs = poly.add(b_coeffs,e_coeffs)
-    v_coeffs = poly.pointwise(pka,s_coeffs)
+    b_coeffs = poly.pointwise(a_coeffs, s_coeffs)
+    b_coeffs = poly.add(b_coeffs, e_coeffs)
+    v_coeffs = poly.pointwise(pka, s_coeffs)
     v_coeffs = poly.invntt(v_coeffs)
     e_prime = poly.get_noise()
     v_coeffs = poly.add(v_coeffs, e_prime)
+    c_coeffs = poly.helprec(v_coeffs)
+    output = poly.to_bytes(b_coeffs)
+    for i in range(0, params.N // 4):
+        output.append(
+            c_coeffs[4 * i]
+            | c_coeffs[4 * i + 1] << 2
+            | c_coeffs[4 * i + 2] << 4
+            | c_coeffs[4 * i + 3] << 6)
+    b_key = poly.rec(v_coeffs, c_coeffs)
+    return bytes(output)
 
 def keygen(verbose = False):
+    global s_hat
     seed = os.urandom(params.NEWHOPE_SEEDBYTES)
     a_coeffs = gen_a(seed)
     print_coeffs(a_coeffs, 'a', verbose)
     s_coeffs = get_noise()
     print_coeffs(s_coeffs, 's_ntt', verbose)
+    s = s_coeffs
     e_coeffs = get_noise()
     r_coeffs = poly.pointwise(s_coeffs, a_coeffs)
     p_coeffs = poly.add(e_coeffs, r_coeffs)
@@ -46,7 +78,7 @@ def gen_a(seed):
         # Reject coefficients that are greater than or equal to 5q:
         while coefficient >= 5 * params.Q:
             coefficient = int.from_bytes(
-                shake_output[j * 2:j * 2 + 2], byteorder = 'little')
+                shake_output[j * 2 : j * 2 + 2], byteorder = 'little')
             j += 1
             if j * 2 >= len(shake_output):
                 print('Error: Not enough data from SHAKE-128')

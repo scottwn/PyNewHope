@@ -5,6 +5,15 @@ import os
 QINV = 12287 # -inverse_mod(p,2^18)
 RLOG = 18
 
+def LDDecode(xi0, xi1, xi2, xi3):
+    t = g(xi0)
+    t += g(xi1)
+    t += g(xi2)
+    t += g(xi3)
+    t -= 8 * PARAM_Q
+    t >>= 31
+    return t & 1
+
 def nh_abs(x):
     mask = x >> 31
     return (x ^ mask) - mask
@@ -23,6 +32,18 @@ def f(x):
     r = t & 1
     v1 = (t >> 1) + r
     return (v0, v1, nh_abs(x - v0 * 2 * params.Q))
+
+def g(x):
+    b = x * 2730
+    t = b >> 27
+    b = x - t * 49156
+    b = 49155 - b
+    b >>= 31
+    t -= b
+    c = t & 1
+    t = (t >> 1) + c
+    t *= 8 * PARAM_Q
+    return nh_abs(t - x)
 
 def helprec(coefficients):
     rand = []
@@ -53,6 +74,31 @@ def helprec(coefficients):
 	output[512 + i] = (v_tmp[2] - v_tmp[3]) & 3
 	output[768 + i] = (-k + 2 * v_tmp[3]) & 3
     return output
+
+def rec(v_coeffs, c_coeffs):
+    key = []
+    tmp = [0, 0, 0, 0]
+    for i in range(0, 32):
+        key.append(0)
+    for i in range(0, 256):
+        tmp[0] = (
+            16 * params.Q
+            + 8 * v_coeffs[0 + i]
+            - params.Q * (2 * c_coeffs[0 + i] + c_coeffs[768 + i]))
+        tmp[1] = (
+            16 * params.Q
+            + 8 * v_coeffs[256 + i]
+            - params.Q * (2 * c_coeffs[256 + i] + c_coeffs[768 + i]))
+        tmp[2] = (
+            16 * params.Q
+            + 8 * v_coeffs[512 + i]
+            - params.Q * (2 * c_coeffs[512 + i] + c_coeffs[768 + i]))
+        tmp[3] = (
+            16 * params.Q
+            + 8 * v_coeffs[768 + i]
+            - params.Q * (c_coeffs[768 + i]))
+        key[i >> 3] |= LDDecode(tmp[0], tmp[1], tmp[2], tmp[3]) << (i & 7)
+    return key
 
 def bitrev_vector(coefficients):
     for i in range(0, params.N):
