@@ -15,8 +15,7 @@ def get_noise():
 
 def shareda(received):
     global a_key, s_hat
-    c_coeffs = received[0]
-    b_coeffs = received[1]
+    (c_coeffs, b_coeffs) = received
     v_coeffs = poly.pointwise(s_hat, b_coeffs)
     v_coeffs = poly.invntt(v_coeffs)
     a_key = poly.rec(v_coeffs, c_coeffs)
@@ -24,11 +23,7 @@ def shareda(received):
 
 def sharedb(received):
     global b_key
-    pka = received[0]
-    print_coeffs(pka, 'bob b', True)
-    seed = received[1]
-    print('bob seed')
-    print(str(seed))
+    (pka, seed) = received
     a_coeffs = gen_a(seed)
     s_coeffs = get_noise()
     e_coeffs = get_noise()
@@ -39,28 +34,18 @@ def sharedb(received):
     e_prime = poly.get_noise()
     v_coeffs = poly.add(v_coeffs, e_prime)
     c_coeffs = poly.helprec(v_coeffs)
-    output = poly.to_bytes(b_coeffs)
-    for i in range(0, params.N // 4):
-        output.append(
-            c_coeffs[4 * i]
-            | c_coeffs[4 * i + 1] << 2
-            | c_coeffs[4 * i + 2] << 4
-            | c_coeffs[4 * i + 3] << 6)
     b_key = poly.rec(v_coeffs, c_coeffs)
     return (c_coeffs, b_coeffs)
 
 def keygen(verbose = False):
     global s_hat
     seed = os.urandom(params.NEWHOPE_SEEDBYTES)
-    print('alice seed')
-    print(str(seed))
     a_coeffs = gen_a(seed)
     s_coeffs = get_noise()
     s_hat = s_coeffs
     e_coeffs = get_noise()
     r_coeffs = poly.pointwise(s_coeffs, a_coeffs)
     p_coeffs = poly.add(e_coeffs, r_coeffs)
-    print_coeffs(p_coeffs, 'alice b', verbose)
     return (p_coeffs, seed)
 
 def gen_a(seed):
@@ -77,17 +62,11 @@ def gen_a(seed):
         while coefficient >= 5 * params.Q:
             coefficient = int.from_bytes(
                 shake_output[j * 2 : j * 2 + 2], byteorder = 'little')
-            # print('j=' + str(j))
+            print('j=' + str(j))
             j += 1
             if j * 2 >= len(shake_output):
                 print('Error: Not enough data from SHAKE-128')
                 exit(1)
         output.append(coefficient)
-        # print('chose ' + str(coefficient))
+        print('chose ' + str(coefficient))
     return output
-
-def print_coeffs(coefficients, name, verbose):
-    if verbose:
-        with open(name + '.txt', 'w') as f:
-            for i in range(0,len(coefficients)):
-                f.write(str(i) + ': ' + str(coefficients[i]) + '\n')

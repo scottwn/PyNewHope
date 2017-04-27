@@ -115,53 +115,6 @@ def invntt(coefficients):
     coefficients = mul_coefficients(coefficients, precomp.psis_inv_montgomery)
     return coefficients
 
-def to_bytes(coefficients):
-    output = []
-    for i in range(0, params.N // 4): # Floor division returns int in python3.6.
-        # Compress 4 coefficients so they are less than parameter Q and get them
-        # back as a list.
-        t = reducer(coefficients, i)
-        output.append(t[0] & 0xff)
-        output.append((t[0] >> 8 | t[1] << 6) & 0xff)
-        output.append(t[1] >> 2 & 0xff)
-        output.append((t[1] >> 10 | t[2] << 4) & 0xff)
-        output.append(t[2] >> 4 & 0xff)
-        output.append((t[2] >> 12 | t[3] << 2) & 0xff)
-        output.append(t[3] >> 6 & 0xff)
-    return output
-
-def from_bytes(received):
-    output = []
-    for i in range(0, params.N // 4):
-        output.append(received[7 * i + 0] | (received[7 * i + 1] & 0x3f) << 8)
-        output.append(
-            received[7 * i + 1] >> 6 
-            | (received[7 * i + 2] & 0xffff) << 2 
-            | (received[7 * i + 3] & 0x0f) << 10)
-        output.append(
-            received[7 * i + 3] >> 4
-            | (received[7 * i + 4] & 0xffff) << 4
-            | (received[7 * i + 5] & 0x03) << 12)
-        output.append(
-            received[7 * i + 5] >> 2
-            | (received[7 * i + 6] & 0xffff) << 6)
-    return output
-
-def reducer(coefficients, i):
-    output = []
-    for j in range(0, 4):
-        output.append(barrett_reduce(coefficients[4 * i + j]))
-    for j in range(0, 4):
-        output[j] = less_than_q(output[j])
-    return output
-
-def less_than_q(value):
-    m = value - params.Q
-    if m < 0:
-        return value
-    else:
-        return m
-
 # Get a random sampling of integers from a normal distribution around parameter
 # Q.
 def get_noise():
