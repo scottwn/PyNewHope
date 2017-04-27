@@ -10,7 +10,7 @@ def LDDecode(xi0, xi1, xi2, xi3):
     t += g(xi1)
     t += g(xi2)
     t += g(xi3)
-    t -= 8 * PARAM_Q
+    t -= 8 * params.Q
     t >>= 31
     return t & 1
 
@@ -42,7 +42,7 @@ def g(x):
     t -= b
     c = t & 1
     t = (t >> 1) + c
-    t *= 8 * PARAM_Q
+    t *= 8 * params.Q
     return nh_abs(t - x)
 
 def helprec(coefficients):
@@ -65,14 +65,14 @@ def helprec(coefficients):
         (v0[3], v1[3], x) = f(8 * coefficients[768 + i] + 4 * rbit)
         k += x
         k = 2 * params.Q - 1 - k >> 31
-	v_tmp[0] = ((~k) & v0[0]) ^ (k & v1[0])
-	v_tmp[1] = ((~k) & v0[1]) ^ (k & v1[1])
-	v_tmp[2] = ((~k) & v0[2]) ^ (k & v1[2])
-	v_tmp[3] = ((~k) & v0[3]) ^ (k & v1[3])
-	output[0 + i] = (v_tmp[0] - v_tmp[3]) & 3
-	output[256 + i] = (v_tmp[1] - v_tmp[3]) & 3
-	output[512 + i] = (v_tmp[2] - v_tmp[3]) & 3
-	output[768 + i] = (-k + 2 * v_tmp[3]) & 3
+        v_tmp[0] = ((~k) & v0[0]) ^ (k & v1[0])
+        v_tmp[1] = ((~k) & v0[1]) ^ (k & v1[1])
+        v_tmp[2] = ((~k) & v0[2]) ^ (k & v1[2])
+        v_tmp[3] = ((~k) & v0[3]) ^ (k & v1[3])
+        output[0 + i] = (v_tmp[0] - v_tmp[3]) & 3
+        output[256 + i] = (v_tmp[1] - v_tmp[3]) & 3
+        output[512 + i] = (v_tmp[2] - v_tmp[3]) & 3
+        output[768 + i] = (-k + 2 * v_tmp[3]) & 3
     return output
 
 def rec(v_coeffs, c_coeffs):
@@ -102,7 +102,7 @@ def rec(v_coeffs, c_coeffs):
 
 def bitrev_vector(coefficients):
     for i in range(0, params.N):
-        r = bitrev_table[i]
+        r = precomp.bitrev_table[i]
         if i < r:
             tmp = coefficients[i]
             coefficients[i] = coefficients[r]
@@ -112,7 +112,7 @@ def bitrev_vector(coefficients):
 def invntt(coefficients):
     coefficients = bitrev_vector(coefficients)
     coefficients = ntt(coefficients, precomp.omegas_inv_montgomery)
-    coefficients = mul_coefficients(coefficients, psis_inv_montgomery)
+    coefficients = mul_coefficients(coefficients, precomp.psis_inv_montgomery)
     return coefficients
 
 def to_bytes(coefficients):
@@ -179,21 +179,25 @@ def get_noise():
 def ntt(coefficients, omega):
     for i in range(0, 10, 2):
         distance = 1 << i
-        coefficients = ntt_helper(distance, coefficients, omega)
+        for start in range(0, distance):
+            jTwiddle = 0
+            for j in range(start, params.N - 1, 2 * distance):
+                W = omega[jTwiddle]
+                jTwiddle += 1
+                temp = coefficients[j]
+                coefficients[j] = temp + coefficients[j + distance]
+                coefficients[j + distance] = montgomery_reduce(
+                    W * (temp + 3 * params.Q - coefficients[j + distance]))
         distance <<= 1
-        coefficients = ntt_helper(distance, coefficients, omega)
-    return coefficients
-
-def ntt_helper(distance, coefficients, omega):
-    for start in range(0, distance):
-        jTwiddle = 0
-        for j in range(start, params.N - 1, 2 * distance):
-            W = omega[jTwiddle]
-            jTwiddle += 1
-            temp = coefficients[j]
-            coefficients[j] = temp + coefficients[j + distance]
-            coefficients[j + distance] = montgomery_reduce(
-                W * (temp + 3 * params.Q - coefficients[j + distance]))
+        for start in range(0, distance):
+            jTwiddle = 0
+            for j in range(start, params.N - 1, 2 * distance):
+                W = omega[jTwiddle]
+                jTwiddle += 1
+                temp = coefficients[j]
+                coefficients[j] = barrett_reduce(temp + coefficients[j + distance])
+                coefficients[j + distance] = montgomery_reduce(
+                    W * (temp + 3 * params.Q - coefficients[j + distance]))
     return coefficients
 
 def poly_ntt(coefficients):
