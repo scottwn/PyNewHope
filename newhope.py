@@ -15,13 +15,8 @@ def get_noise():
 
 def shareda(received):
     global a_key, s_hat
-    c_coeffs = []
-    b_coeffs = poly.from_bytes(received)
-    for i in range(0, params.N // 4):
-        c_coeffs.append(received[params.POLY_BYTES + i] & 0x03)
-        c_coeffs.append(received[params.POLY_BYTES + i] >> 2 & 0x03)
-        c_coeffs.append(received[params.POLY_BYTES + i] >> 4 * 0x03)
-        c_coeffs.append(received[params.POLY_BYTES + i] >> 6)
+    c_coeffs = received[0]
+    b_coeffs = received[1]
     v_coeffs = poly.pointwise(s_hat, b_coeffs)
     v_coeffs = poly.invntt(v_coeffs)
     a_key = poly.rec(v_coeffs, c_coeffs)
@@ -29,9 +24,9 @@ def shareda(received):
 
 def sharedb(received):
     global b_key
-    pka = poly.from_bytes(received)
+    pka = received[0]
     print_coeffs(pka, 'bob b', True)
-    seed = received[-params.NEWHOPE_SEEDBYTES:]
+    seed = received[1]
     print('bob seed')
     print(str(seed))
     a_coeffs = gen_a(seed)
@@ -52,7 +47,7 @@ def sharedb(received):
             | c_coeffs[4 * i + 2] << 4
             | c_coeffs[4 * i + 3] << 6)
     b_key = poly.rec(v_coeffs, c_coeffs)
-    return bytes(output)
+    return (c_coeffs, b_coeffs)
 
 def keygen(verbose = False):
     global s_hat
@@ -66,7 +61,7 @@ def keygen(verbose = False):
     r_coeffs = poly.pointwise(s_coeffs, a_coeffs)
     p_coeffs = poly.add(e_coeffs, r_coeffs)
     print_coeffs(p_coeffs, 'alice b', verbose)
-    return bytes(poly.to_bytes(p_coeffs)) + seed
+    return (p_coeffs, seed)
 
 def gen_a(seed):
     hashing_algorithm = hashlib.shake_128()
