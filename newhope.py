@@ -8,11 +8,14 @@ a_key = []
 b_key = []
 s_hat = []
 
+#get_noise returns a random sampling from a normal distribution in the NTT domain.
 def get_noise():
     coefficients = poly.get_noise()
     coefficeints = poly.poly_ntt(coefficients)
     return coefficients
 
+# shareda is a server-side function that takes the (decoded) message received 
+# from the client as an argument. It generates the shared key a_key.
 def shareda(received):
     global a_key, s_hat
     (c_coeffs, b_coeffs) = received
@@ -21,6 +24,10 @@ def shareda(received):
     a_key = poly.rec(v_coeffs, c_coeffs)
     return
 
+# sharedb is a client-side function that takes the (decoded) message received
+# from the server as an argument. It generates the shared key b_key and returns
+# a message in the form of a tuple. This message should be encoded using JSON or
+# another portable format and transmitted (over an open channel) to the server.
 def sharedb(received):
     global b_key
     (pka, seed) = received
@@ -37,6 +44,10 @@ def sharedb(received):
     b_key = poly.rec(v_coeffs, c_coeffs)
     return (c_coeffs, b_coeffs)
 
+# keygen is a server-side function that generates the private key s_hat and 
+# returns a message in the form of a tuple. This message should be encoded using
+# JSON or another portable format and transmitted (over an open channel) to the
+# client.
 def keygen(verbose = False):
     global s_hat
     seed = os.urandom(params.NEWHOPE_SEEDBYTES)
@@ -48,6 +59,7 @@ def keygen(verbose = False):
     p_coeffs = poly.add(e_coeffs, r_coeffs)
     return (p_coeffs, seed)
 
+# gen_a returns a list of random coefficients.
 def gen_a(seed):
     hashing_algorithm = hashlib.shake_128()
     hashing_algorithm.update(seed)
