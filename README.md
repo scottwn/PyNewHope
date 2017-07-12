@@ -22,13 +22,13 @@ Instructions for cloning and testing PyNewHope on Mac/Linux:
 ------------------------------------------------------------
 
 Once you have Python 3.6 and Git installed, open a terminal and enter the following commands:
-
-`git clone https://github.com/scottwn/PyNewHope
+```
+git clone https://github.com/scottwn/PyNewHope
 
 cd PyNewHope
 
-python3.6 test_newhope.py`
-
+python3.6 test_newhope.py
+```
 
 Instructions for cloning and testing PyNewHope on Windows:
 ----------------------------------------------------------
@@ -40,9 +40,9 @@ Download PyNewHope as a zip file from https://github.com/scottwn/PyNewHope using
 Unzip PyNewHope into a directory in your Python PATH.
 
 Open a Python shell and enter the following commands:
+```
+import test_newhope
 
-`import test_newhope
-
-test_newhope`
-
+test_newhope
+```
 
