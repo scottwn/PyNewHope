@@ -2,7 +2,9 @@
 
 PyNewHope is a Python implementation of the NewHope quantum secure cryptographic scheme proposed by Alkim, Ducas, Pöppelmann, and Schwabe: https://eprint.iacr.org/2015/1092
 
-This Python implementation is based on, and duplicates much of the functionality of, the reference C implementation available in the `liboqs` repository: https://github.com/open-quantum-safe/liboqs/tree/master/src/kex_rlwe_newhope
+This Python implementation is based on, and duplicates much of the functionality of, the reference C implementation ~available in the `liboqs` repository: https://github.com/open-quantum-safe/liboqs/tree/master/src/kex_rlwe_newhope~
+
+**NOTE;** `kex_rlwe_newhope` was removed from `liboqs` in https://github.com/open-quantum-safe/liboqs/pull/358
 
 This implementation is designed to be used natively in Python applications, without the need for wrappers or other means of incorporating the C implementation into production software. A testing harness is available in `test_newhope.py`, and documentation is provided as code comments. The code should be readable and usable.
 
